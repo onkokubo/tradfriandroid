@@ -14,10 +14,10 @@ public class TradfriEntity implements TradfriEntityContainer {
     protected String name;
 
     @SerializedName(TradfriConstants.DEVICE_TIMESTAMP)
-    protected Long deviceTimestamp;
+    protected Long deviceTimestamp = 0l;
 
     @SerializedName(TradfriConstants.ONOFF)
-    protected Long onOff;
+    protected Long onOff = 0l;
 
 
 }
