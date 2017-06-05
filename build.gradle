@@ -1,0 +1,49 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "25.0.0"
+
+    defaultConfig {
+        minSdkVersion 22
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://repo.eclipse.org/content/repositories/californium/"
+    }
+    maven {
+        url "https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on"
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:25.2.0+'
+    compile 'com.google.code.gson:gson:2.2.+'
+    compile 'io.reactivex.rxjava2:rxjava:2.0.1'
+    compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
+    compile 'org.eclipse.californium:californium-core:1.0.4'
+    compile 'org.eclipse.californium:scandium:1.0.0-M2'
+    compile 'org.eclipse.californium:scandium-examples:1.0.0-RC1'
+    compile 'org.bouncycastle:bcprov-jdk15on:1.57'
+    provided 'com.google.android.things:androidthings:0.3-devpreview'
+    testCompile 'junit:junit:4.12'
+}

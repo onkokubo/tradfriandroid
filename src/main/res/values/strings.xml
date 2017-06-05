@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">TradfriAndroid</string>
+    <string name="tradfri_root_endpoint">/.well-known/core</string>
+    <string name="trusted_store_location">trustStore.bks</string>
+    <string name="trusted_store_password">rootPass</string>
+    <string name="key_store_location">keyStore.bks</string>
+    <string name="key_store_password">endPass</string>
+    <string name="psk"></string>
+</resources>
