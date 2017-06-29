@@ -14,7 +14,9 @@ import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,12 +24,18 @@ import io.reactivex.Observable;
 import io.reactivex.functions.Consumer;
 import sk.onkokubo.iot.tradfriandroid.TradfriConstants;
 import sk.onkokubo.iot.tradfriandroid.data.access.TradfriEntityParser;
+import sk.onkokubo.iot.tradfriandroid.data.model.TradfriDeviceModel;
 import sk.onkokubo.iot.tradfriandroid.data.model.TradfriDeviceValues;
 import sk.onkokubo.iot.tradfriandroid.data.model.TradfriEntity;
+import sk.onkokubo.iot.tradfriandroid.data.model.TradfriEntityContainer;
+import sk.onkokubo.iot.tradfriandroid.data.model.TradfriGroupModel;
+import sk.onkokubo.iot.tradfriandroid.data.model.TradfriMoodModel;
 import sk.onkokubo.iot.tradfriandroid.util.LogWrapper;
 
 /**
  * @author ondrejkubo on 04/06/2017.
+ * Based on https://bitsex.net/software/2017/coap-endpoints-on-ikea-tradfri/
+ * Inspired by https://github.com/hardillb/TRADFRI2MQTT/
  */
 public class TradfriGateway {
 
@@ -48,6 +56,7 @@ public class TradfriGateway {
     }
 
     private final List<String> endpoints = new ArrayList<>();
+    private final Map<Type, Map<String, TradfriEntityContainer>> entities = new HashMap<>();
 
     public TradfriGateway(final TradfriGateway.Builder builder) {
         try {
@@ -104,10 +113,10 @@ public class TradfriGateway {
                         if ("".equals(result.second.getPayloadString())) {
                             initTopology();
                         } else {
-                            LogWrapper.d(TAG, "Received data: " + result.second.getPayloadString());
+                            //LogWrapper.d(TAG, "Received data: " + result.second.getPayloadString());
                             Matcher m = Pattern.compile("(\\<\\/(.+?)\\>)")
                                     .matcher(result.second.getPayloadString());
-                            LogWrapper.d(TAG, "Found endpoints: ");
+                            //LogWrapper.d(TAG, "Found endpoints: ");
                             while (m.find()) {
                                 LogWrapper.d(TAG, "    " + m.group(2));
                                 boolean add = true;
@@ -142,57 +151,39 @@ public class TradfriGateway {
     private final Consumer<Pair<String, Response>> endpointDataConsumer = new Consumer<Pair<String, Response>>() {
         @Override
         public void accept(Pair<String, Response> result) throws Exception {
-            LogWrapper.d(TAG, "Response from address: " + result.first);
-            //LogWrapper.i(TAG, TradfriEntityParser.getEntityType(result.second, result.first).toString());
-            //LogWrapper.d(TAG, "Content: \n" + result.second);
-            List<Long> idList;
-            TradfriEntity tradfriEntity = new TradfriEntity();
-            //TradfriEntityParser.parse(result.second, result.first);
-            if (result.second.getPayloadString().length() == 0) {
-                LogWrapper.e(TAG, "Empty response for: " + result.first);
-                return;
-            }
-            if (result.second.getPayloadString().substring(0,2).equals("[{")) {
-                Type listType = new TypeToken<List<TradfriDeviceValues>>() {}.getType();
-                try {
-                    idList= new Gson().fromJson(result.second.getPayloadString(), listType);
-                }
-                catch (Exception e) {
-                    LogWrapper.e(TAG, "Error parsing Value list: \n"
-                                    + result.second
-                                    + "\n with exception: \n"
-                                    + e.getMessage(),
-                            e);
+            final Type type = TradfriEntityParser.getEntityType(result.second, result.first);
+            if (type != null) {
+                final TradfriEntityContainer tradfriEntity = TradfriEntityParser.parse(result.second, result.first);
+                if (tradfriEntity != null) {
+                    if (entities.get(type) == null) {
+                        entities.put(type, new HashMap<String, TradfriEntityContainer>());
+                    }
+                    final String id;
+                    if (tradfriEntity instanceof TradfriEntity) {
+                        final String[] segments = TradfriEntityParser.getUriSegments(result.first);
+                        id = segments[segments.length - 1];
+                        ((TradfriEntity) tradfriEntity).setId(id);
+                    }
+                    else {
+                        id = String.valueOf(entities.get(type).size() + 1);
+                    }
+                    entities.get(type).put(id, tradfriEntity);
                 }
             }
-            else if (result.second.getPayloadString().substring(0,1).equals("[")) {
-                Type listType = new TypeToken<List<Long>>() {}.getType();
-                try {
-                    idList= new Gson().fromJson(result.second.getPayloadString(), listType);
-                }
-                catch (Exception e) {
-                    LogWrapper.e(TAG, "Error parsing ID list: \n"
-                                    + result.second
-                                    + "\n with exception: \n"
-                                    + e.getMessage(),
-                            e);
-                }
-            }
-            else {
-                try {
-                    tradfriEntity = new Gson().fromJson(result.second.getPayloadString(), TradfriEntity.class);
-                }
-                catch (Exception e) {
-                    LogWrapper.e(TAG, "Error parsing: \n"
-                                    + result.second
-                                    + "\n with exception: \n"
-                                    + e.getMessage(),
-                            e);
-                }
-            }
-            LogWrapper.d(TAG, "parsed " + tradfriEntity.toString());
         }
     };
+
+    public Map<String, TradfriEntityContainer> getGroups() {
+        return entities.get(TradfriGroupModel.class);
+    }
+
+    public Map<String, TradfriEntityContainer> getDevices() {
+        return entities.get(TradfriDeviceModel.class);
+    }
+
+    public Map<String, TradfriEntityContainer> getMoods() {
+        return entities.get(TradfriMoodModel.class);
+    }
 
     public static final class Builder {
 

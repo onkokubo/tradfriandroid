@@ -19,5 +19,25 @@ public class TradfriEntity implements TradfriEntityContainer {
     @SerializedName(TradfriConstants.ONOFF)
     protected Long onOff = 0l;
 
+    protected String id = "";
 
+    public String getName() {
+        return name;
+    }
+
+    public Long getDeviceTimestamp() {
+        return deviceTimestamp;
+    }
+
+    public Long getOnOff() {
+        return onOff;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 }

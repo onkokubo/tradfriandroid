@@ -9,13 +9,16 @@ import org.eclipse.californium.core.coap.Response;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import sk.onkokubo.iot.tradfriandroid.TradfriEntityType;
 import sk.onkokubo.iot.tradfriandroid.data.model.TradfriDeviceModel;
 import sk.onkokubo.iot.tradfriandroid.data.model.TradfriDeviceValues;
 import sk.onkokubo.iot.tradfriandroid.data.model.TradfriEntity;
 import sk.onkokubo.iot.tradfriandroid.data.model.TradfriEntityContainer;
+import sk.onkokubo.iot.tradfriandroid.data.model.TradfriGroupModel;
 import sk.onkokubo.iot.tradfriandroid.data.model.TradfriIdListModel;
 import sk.onkokubo.iot.tradfriandroid.data.model.TradfriMoodModel;
 import sk.onkokubo.iot.tradfriandroid.data.model.TradfriNtpModel;
@@ -28,6 +31,7 @@ import sk.onkokubo.iot.tradfriandroid.util.LogWrapper;
 public final class TradfriEntityParser {
 
     private static final String TAG = TradfriEntityParser.class.getSimpleName();
+    private static final Gson gson = new Gson();
 
     public static final TradfriEntityContainer parse(final Response response, final String address) {
         final Type responseType = getEntityType(response, address);
@@ -53,7 +57,7 @@ public final class TradfriEntityParser {
 
             Type listType = new TypeToken<List<TradfriDeviceValues>>() {}.getType();
             try {
-                List<Long> idList= new Gson().fromJson(response.getPayloadString(), listType);
+                List<Long> idList= gson.fromJson(response.getPayloadString(), listType);
                 list.setmIds(idList);
                 return list;
             }
@@ -67,7 +71,7 @@ public final class TradfriEntityParser {
         }
         else {
             try {
-                return new Gson().fromJson(response.getPayloadString(), responseType);
+                return gson.fromJson(response.getPayloadString(), responseType);
             }
             catch (Exception e) {
                 LogWrapper.e(TAG, "Error parsing Value list: \n"
@@ -81,7 +85,7 @@ public final class TradfriEntityParser {
         return null;
     }
 
-    public static final Type getEntityType(final Response response, final String address) {
+    public static final String[] getUriSegments(final String address) {
         URI uri = null;
         try {
             uri = new URI(address);
@@ -89,6 +93,11 @@ public final class TradfriEntityParser {
             LogWrapper.e(TAG, e.getMessage(), e);
         }
         final String[] segments = uri.getPath().split("\\/");
+        return segments;
+    }
+
+    public static final Type getEntityType(final Response response, final String address) {
+        final String[] segments = getUriSegments(address);
         if (segments.length < 2) {
             return null;
         }
@@ -123,6 +132,8 @@ public final class TradfriEntityParser {
                         return new TypeToken<List<TradfriDeviceModel>>() {}.getType();
                     case NTP:
                         return TradfriNtpModel.class;
+                    case GROUPS:
+                        return TradfriGroupModel.class;
                     default:
                         return JsonObject.class;
                 }
